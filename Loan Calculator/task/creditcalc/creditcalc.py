@@ -1,25 +1,45 @@
 import math
-def calculate_months(principal, monthly_payment):
-    months_required = math.ceil(principal / monthly_payment)
-    print(f"It will take {months_required} months to repay the loan")
+import argparse
 
-def calculate_monthly_payment(principal, number_of_months):
-    monthly_payment = math.ceil(principal / number_of_months)
-    if monthly_payment * number_of_months > principal:
-        last_payment = principal - (monthly_payment * (number_of_months - 1))
-        print(f"Your monthly payment = {monthly_payment} and the last payment = {last_payment}")
+
+def calculate_months(principal, monthly_payment, interest):
+    nominal_interest = calculate_nominal_interest(interest)
+    x = monthly_payment / (monthly_payment - nominal_interest * principal)
+    months_required = math.log(x, 1 + nominal_interest)
+    return math.ceil(months_required)
+
+
+def calculate_monthly_payment(principal, number_of_months, interest):
+    nominal_interest = calculate_nominal_interest(interest)
+    result = math.ceil(principal * ((nominal_interest * (1 + nominal_interest) ** number_of_months) /
+                                    ((1 + nominal_interest) ** number_of_months - 1)))
+    return result
+
+
+def calculate_nominal_interest(interest):
+    nominal_interest = interest / (12 * 100)
+    return nominal_interest
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--payment", type=float, required=False)
+parser.add_argument("--principal", type=int, required=False)
+parser.add_argument("--periods", type=int, required=False)
+parser.add_argument("--interest", type=float, required=True)
+
+args = parser.parse_args()
+
+if args.periods is None:
+    total_months = calculate_months(args.principal, args.payment, args.interest)
+    years = math.floor(total_months / 12)
+    months = total_months % 12
+
+    if years > 0 and months > 0:
+        print(f"It will take {years} years and {months} months to repay this loan!")
     else:
-        print(f"Your monthly payment = {monthly_payment}")
-
-principal = int(input("Enter the loan principal: "))
-user_choice = input("""What do you want to calculate? 
-type "m" for number of monthly payments,
-type "p" for the monthly payment:
-""")
-
-if user_choice == "m":
-    monthly_payment = int(input("Enter the monthly payment: "))
-    calculate_months(principal, monthly_payment)
-else:
-    number_of_months = int(input("Enter the number of months: "))
-    calculate_monthly_payment(principal, number_of_months)
+        time_str = f"{years} years" if years > 0 else f"{months} months"
+        print(f"It will take {time_str} to repay this loan!")
+elif args.payment is None:
+    monthly_payment = calculate_monthly_payment(args.principal, args.periods, args.interest)
+    print(f"Your monthly payment = {monthly_payment}")
+# TODO: Need to be able to calculate and print the principal when it's missing.

@@ -11,69 +11,87 @@ class LoanCalcTest(StageTest):
     def generate(self):
         return [
             TestCase(
-                stdin='1000\nm\n200',
-                attach=5,
+                args=['--principal=1000000', '--periods=60', '--interest=10'],
+                attach=21248
             ),
             TestCase(
-                stdin='1000\nm\n150',
-                attach=7,
+                args=['--principal=1000000', '--periods=8', '--interest=9.8'],
+                attach=129638
             ),
             TestCase(
-                stdin='1000\nm\n1000',
-                attach=1,
+                args=['--principal=3000000', '--periods=302', '--interest=11.2'],
+                attach=29803
             ),
             TestCase(
-                stdin='1000\np\n10',
-                attach=100,
+                args=['--principal=500000', '--payment=23000', '--interest=7.8'],
+                attach=[2, 0]
             ),
             TestCase(
-                stdin='1000\np\n9',
-                attach=['112', '104'],
+                args=['--principal=700000', '--payment=26000', '--interest=9.1'],
+                attach=[2, 7]
             ),
             TestCase(
-                stdin='1350\nm\n140',
-                attach=10,
+                args=['--payment=8721.8', '--periods=120', '--interest=5.6'],
+                attach=(800000,)
             ),
             TestCase(
-                stdin='300\nm\n400',
-                attach=1,
-            ),
-            TestCase(
-                stdin='5555\np\n11',
-                attach=505,
-            ),
-            TestCase(
-                stdin='5576\np\n10',
-                attach=['558', '554'],
-            ),
+                args=['--payment=6898.02', '--periods=240', '--interest=3.4'],
+                attach=(1200001,)
+            )
         ]
 
     def check(self, reply, attach):
-        reply = reply.lower()
-        if isinstance(attach, int):
-            if not any(char.isdigit() for char in reply):
-                return CheckResult.wrong('Your program didn\'t print the number of months required to replay the loan.')
+        numbers = re.findall(r'[-+]?(\d*\.\d+|\d+)', reply)
+        if len(numbers) == 0:
+            return CheckResult.wrong(
+                'No numbers in the answer',
+            )
 
-            # If attach value is more than 100, the int in attach represents the monthly payment, 'p'
-            if attach >= 100 and str(attach) not in reply:
-                return CheckResult.wrong('Incorrect monthly payment.\n'
-                                         f'Expected: {attach}')
-            elif str(attach) not in reply:
-                return CheckResult.wrong('Incorrect number of months required to replay the loan.\n'
-                                         f'Expected: {attach}')
+        if isinstance(attach, tuple):
+            for i in numbers:
+                if abs(attach[0] - float(i)) < 2:
+                    return CheckResult.correct()
+            output = 'Numbers in your answer: ' + ' '.join(numbers)
+            output += '. But correct principal is {0}'.format(attach[0])
+            return CheckResult.wrong(output)
 
         if isinstance(attach, list):
-            if attach[0] not in reply or attach[1] not in reply:
-                numbers = re.findall(r'[-+]?(\d*\.\d+|\d+)', reply)
-                if len(numbers) == 0:
-                    return CheckResult.wrong(f'The correct monthly payment is {attach[0]}, and the last payment is '
-                                             f'{attach[1]}, but your program didn\'t print these values.')
-                elif len(numbers) == 1:
-                    return CheckResult.wrong(f'The correct monthly payment is {attach[0]}, and the last payment is '
-                                             f'{attach[1]}, but there is only {numbers[0]} in your output.')
-                else:
-                    return CheckResult.wrong(f'The correct monthly payment is {attach[0]}, and the last payment is '
-                                             f'{attach[1]}, but there are {numbers[0]} and {numbers[1]} in your output.')
+            # to exclude answers like 'it takes 2.01 years'
+            # but 'it takes 2.0 years' let it be OK.
+            epsilon = 0.00001
+            numbers = [
+                int(float(x)) for x in numbers
+                if abs(int(float(x)) - float(x)) < epsilon
+            ]
+            if attach[1] == 0:
+                if 'year' in reply.lower() and attach[0] in numbers:
+                    return CheckResult.correct()
+
+                output = 'Correct result: {0} years, but you output "{1}"'
+                return CheckResult.wrong(
+                    output.format(attach[0], reply),
+                )
+            else:
+                if attach[0] in numbers and 'year' in reply.lower():
+                    if attach[1] in numbers and 'month' in reply.lower():
+                        return CheckResult.correct()
+
+                output = (
+                    'Correct result: {0} years {1} months, '
+                    'but you output "{2}"'
+                )
+                return CheckResult.wrong(
+                    output.format(attach[0], attach[1], reply),
+                )
+
+        if str(attach) not in reply.lower():
+            output = (
+                'Correct annuity payment is {0} but you output numbers: {1}'
+            )
+            figures = ' '.join(numbers)
+            return CheckResult.wrong(
+                output.format(attach, figures),
+            )
 
         return CheckResult.correct()
 

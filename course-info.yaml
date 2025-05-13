@@ -10,9 +10,5 @@ summary: "<p>Personal finances are an important part of life. Sometimes you need
 programming_language: Python
 content:
   - Loan Calculator
-additional_files:
-  - name: .idea/inspectionProfiles/Project_Default.xml
-  - name: .idea/inspectionProfiles/profiles_settings.xml
-  - name: requirements.txt
 mode: Study
 yaml_version: 2
