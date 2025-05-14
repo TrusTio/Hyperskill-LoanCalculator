@@ -11,15 +11,22 @@ def calculate_months(principal, monthly_payment, interest):
 
 def calculate_monthly_payment(principal, number_of_months, interest):
     nominal_interest = calculate_nominal_interest(interest)
-    result = math.ceil(principal * ((nominal_interest * (1 + nominal_interest) ** number_of_months) /
+    monthly_payment = math.ceil(principal * ((nominal_interest * (1 + nominal_interest) ** number_of_months) /
                                     ((1 + nominal_interest) ** number_of_months - 1)))
-    return result
+    return monthly_payment
 
 
-def calculate_nominal_interest(interest):
-    nominal_interest = interest / (12 * 100)
+def calculate_nominal_interest(annual_interest):
+    nominal_interest = annual_interest / (12 * 100)
     return nominal_interest
 
+
+def calculate_principal(monthly_payment, interest, number_of_months):
+    nominal_interest = calculate_nominal_interest(interest)
+    principal = monthly_payment / (
+                (nominal_interest * (1 + nominal_interest) ** number_of_months) /
+                ((1 + nominal_interest) ** number_of_months - 1))
+    return math.ceil(principal)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--payment", type=float, required=False)
@@ -42,4 +49,6 @@ if args.periods is None:
 elif args.payment is None:
     monthly_payment = calculate_monthly_payment(args.principal, args.periods, args.interest)
     print(f"Your monthly payment = {monthly_payment}")
-# TODO: Need to be able to calculate and print the principal when it's missing.
+elif args.principal is None:
+    loan_principal = calculate_principal(args.payment, args.interest, args.periods)
+    print(f"Your loan principal = {loan_principal}!")
